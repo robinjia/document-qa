@@ -2,30 +2,30 @@ import argparse
 from datetime import datetime
 from typing import Optional
 
-from docqa import trainer
-from docqa.dataset import ClusteredBatcher
-from docqa.doc_qa_models import Attention
-from docqa.encoder import DocumentAndQuestionEncoder, DenseMultiSpanAnswerEncoder, GroupedSpanAnswerEncoder
-from docqa.evaluator import LossEvaluator, MultiParagraphSpanEvaluator, SpanEvaluator
-from docqa.nn.attention import BiAttention, AttentionEncoder, StaticAttentionSelf
-from docqa.nn.layers import NullBiMapper, SequenceMapperSeq, Conv1d, FullyConnected, \
-    ChainBiMapper, ConcatWithProduct, ResidualLayer, VariationalDropoutLayer, MaxPool
-from docqa.nn.recurrent_layers import CudnnGru
-from docqa.nn.similarity_layers import TriLinear
-from docqa.nn.span_prediction import ConfidencePredictor, BoundsPredictor, IndependentBoundsGrouped, \
-    IndependentBoundsSigmoidLoss
 from tensorflow.contrib.keras.python.keras.initializers import TruncatedNormal
-from docqa.text_preprocessor import WithIndicators, TextPreprocessor
-from docqa.trainer import SerializableOptimizer, TrainParams
 
+from docqa import model_dir
+from docqa import trainer
 from docqa.data_processing.document_splitter import MergeParagraphs, TopTfIdf
 from docqa.data_processing.multi_paragraph_qa import StratifyParagraphsBuilder, \
     StratifyParagraphSetsBuilder, RandomParagraphSetDatasetBuilder
 from docqa.data_processing.preprocessed_corpus import PreprocessedData
 from docqa.data_processing.qa_training_data import ParagraphAndQuestionsBuilder, ContextLenKey, ContextLenBucketedKey
 from docqa.data_processing.text_utils import NltkPlusStopWords
-from docqa import model_dir
+from docqa.dataset import ClusteredBatcher
+from docqa.doc_qa_models import Attention
+from docqa.encoder import DocumentAndQuestionEncoder, DenseMultiSpanAnswerEncoder, GroupedSpanAnswerEncoder
+from docqa.evaluator import LossEvaluator, MultiParagraphSpanEvaluator, SpanEvaluator
+from docqa.nn.attention import BiAttention, AttentionEncoder, StaticAttentionSelf
 from docqa.nn.embedder import FixedWordEmbedder, CharWordEmbedder, LearnedCharEmbedder
+from docqa.nn.layers import NullBiMapper, SequenceMapperSeq, Conv1d, FullyConnected, \
+    ChainBiMapper, ConcatWithProduct, ResidualLayer, VariationalDropoutLayer, MaxPool
+from docqa.nn.recurrent_layers import CudnnGru
+from docqa.nn.similarity_layers import TriLinear
+from docqa.nn.span_prediction import ConfidencePredictor, BoundsPredictor, IndependentBoundsGrouped, \
+    IndependentBoundsSigmoidLoss
+from docqa.text_preprocessor import WithIndicators, TextPreprocessor
+from docqa.trainer import SerializableOptimizer, TrainParams
 from docqa.triviaqa.build_span_corpus import TriviaQaWebDataset
 from docqa.triviaqa.training_data import ExtractSingleParagraph, ExtractMultiParagraphs
 
@@ -34,7 +34,6 @@ def get_triviaqa_train_params(n_epochs, n_dev, n_train):
     return TrainParams(
         SerializableOptimizer("Adadelta", dict(learning_rate=1)),
         num_epochs=n_epochs, ema=0.9999, max_checkpoints_to_keep=2,
-        best_weights=("dev", "b8/text-f1"),
         async_encoding=10, log_period=30, eval_period=1800, save_period=1800,
         eval_samples=dict(dev=n_dev, train=n_train))
 

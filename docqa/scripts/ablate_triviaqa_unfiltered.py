@@ -13,7 +13,7 @@ from docqa.evaluator import LossEvaluator, MultiParagraphSpanEvaluator
 from docqa.scripts.ablate_triviaqa import get_model
 from docqa.text_preprocessor import WithIndicators
 from docqa.trainer import SerializableOptimizer, TrainParams
-from docqa.triviaqa.build_span_corpus import TriviaQaWebDataset
+from docqa.triviaqa.build_span_corpus import TriviaQaOpenDataset
 from docqa.triviaqa.training_data import ExtractMultiParagraphsPerQuestion
 
 
@@ -38,7 +38,7 @@ def main():
     extract = ExtractMultiParagraphsPerQuestion(MergeParagraphs(args.n_tokens), ShallowOpenWebRanker(16),
                                                 model.preprocessor, intern=True)
 
-    eval = [LossEvaluator(), MultiParagraphSpanEvaluator(8, "triviaqa", mode != "merge")]
+    eval = [LossEvaluator(), MultiParagraphSpanEvaluator(8, "triviaqa", mode != "merge", per_doc=False)]
     oversample = [1] * 4
 
     if mode == "paragraph":
@@ -58,7 +58,7 @@ def main():
         test = RandomParagraphSetDatasetBuilder(120, "merge" if mode == "merge" else "group", True, oversample)
         train = StratifyParagraphSetsBuilder(30, mode == "merge", True, oversample)
 
-    data = TriviaQaWebDataset()
+    data = TriviaQaOpenDataset()
 
     params = TrainParams(
         SerializableOptimizer("Adadelta", dict(learning_rate=1)),
