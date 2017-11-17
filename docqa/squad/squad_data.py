@@ -148,7 +148,7 @@ class SquadCorpus(Configurable):
         """ get all-lower cased unique words for this corpus, includes train/dev/test files """
         voc_file = join(self.dir, self.VOCAB_FILE)
         if exists(voc_file):
-            with open(voc_file, "r") as f:
+            with open(voc_file, "rb") as f:
                 return [x.rstrip() for x in f]
         else:
             voc = set()
@@ -161,10 +161,9 @@ class SquadCorpus(Configurable):
                             voc.update(x.lower() for x in question.words)
                             voc.update(x.lower() for x in question.answer.get_vocab())
             voc_list = sorted(list(voc))
-            with open(voc_file, "w") as f:
+            with open(voc_file, "wb") as f:
                 for word in voc_list:
-                    f.write(word)
-                    f.write("\n")
+                    f.write((word + '\n').encode('utf-8'))
             return voc_list
 
     def get_pruned_word_vecs(self, word_vec_name, voc=None):

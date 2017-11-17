@@ -1,6 +1,7 @@
 import os
 import pickle
 import shutil
+import sys
 import time
 from datetime import datetime
 from os.path import exists, join, relpath
@@ -598,6 +599,7 @@ def _train_async(model: Model,
                 if summary is not None:
                     print("on epoch=%d batch=%d step=%d, time=%.3f" %
                           (epoch, batch_ix + 1, on_step, batch_time))
+                    sys.stdout.flush()
                     summary_writer.add_summary(
                         tf.Summary(value=[tf.Summary.Value(tag="time", simple_value=batch_time)]), on_step)
                     summary_writer.add_summary(summary, on_step)

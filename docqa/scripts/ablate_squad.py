@@ -21,7 +21,7 @@ def train_params(n_epochs):
     return TrainParams(SerializableOptimizer("Adadelta", dict(learning_rate=1.0)),
                        ema=0.999, max_checkpoints_to_keep=3, async_encoding=10,
                        num_epochs=n_epochs, log_period=30, eval_period=1200, save_period=1200,
-                       best_weights=("dev", "b17/text-f1"),
+                       best_weights=("dev", "b17/question-text-f1"),
                        eval_samples=dict(dev=None, train=8000))
 
 
