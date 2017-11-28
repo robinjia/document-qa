@@ -10,7 +10,7 @@ from docqa.data_processing.qa_training_data import ParagraphAndQuestion, Paragra
 from docqa.data_processing.text_utils import NltkAndPunctTokenizer, NltkPlusStopWords
 from docqa.doc_qa_models import ParagraphQuestionModel
 from docqa.model_dir import ModelDir
-from docqa.utils import flatten_iterable
+from docqa.utils import flatten_iterable, CachingResourceLoader
 
 """
 Script to run a model on user provided question/context document. 
@@ -84,7 +84,10 @@ def main():
     voc = set(question)
     for txt in context:
         voc.update(txt)
-    model.set_input_spec(ParagraphAndQuestionSpec(batch_size=len(context)), voc)
+    #model.set_input_spec(ParagraphAndQuestionSpec(batch_size=len(context)), voc)
+    loader = CachingResourceLoader()
+    model.set_input_spec(ParagraphAndQuestionSpec(batch_size=len(context)), set([',']),
+                         word_vec_loader=loader)
 
     # Now we build the actual tensorflow graph, `best_span` and `conf` are
     # tensors holding the predicted span (inclusive) and confidence scores for each
@@ -95,7 +98,10 @@ def main():
     # session to figure out the # of parameters needed for each layer. The cpu-compatible models don't need this.
     with sess.as_default():
         # 8 means to limit the span to size 8 or less
-        best_spans, conf = model.get_prediction().get_best_span(8)
+        #best_spans, conf = model.get_prediction().get_best_span(8)
+        prediction = model.get_prediction()
+        none_logit = prediction.none_logit
+        best_spans, conf = prediction.get_best_span(8)
 
     # Loads the saved weights
     model_dir.restore_checkpoint(sess)
@@ -108,14 +114,19 @@ def main():
     print("Starting run")
     # The model is run in two steps, first it "encodes" a batch of paragraph/context pairs
     # into numpy arrays, then we use `sess` to run the actual model get the predictions
+    model.word_embed.update(loader, voc)
     encoded = model.encode(data, is_train=False)  # batch of `ContextAndQuestion` -> feed_dict
-    best_spans, conf = sess.run([best_spans, conf], feed_dict=encoded)  # feed_dict -> predictions
+    best_spans, conf, none_logit = sess.run([best_spans, conf, none_logit], feed_dict=encoded)  # feed_dict -> predictions
+    print(best_spans)
+    print(conf)
+    print(none_logit)
 
     best_para = np.argmax(conf)  # We get output for each paragraph, select the most-confident one to print
     print("Best Paragraph: " + str(best_para))
     print("Best span: " + str(best_spans[best_para]))
     print("Answer text: " + " ".join(context[best_para][best_spans[best_para][0]:best_spans[best_para][1]+1]))
     print("Confidence: " + str(conf[best_para]))
+    print("No-Answer Confidence: " + str(none_logit[best_para]))
 
 
 if __name__ == "__main__":

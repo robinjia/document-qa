@@ -334,6 +334,8 @@ class DocumentAndQuestionEncoder(Configurable):
             question_words = np.zeros([batch_size, ques_word_dim], dtype='int32')
             feed_dict[self.context_words] = context_words
             feed_dict[self.question_words] = question_words
+            # Use the word embedder's current vocabulary, may change!
+            feed_dict[self._word_embedder.common_word_mat] = self._word_embedder.common_word_mat_np
         else:
             question_words, context_words = None, None
 
