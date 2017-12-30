@@ -78,18 +78,27 @@ def main():
     start_logits_tf = prediction.start_logits[0]
     end_logits_tf = prediction.end_logits[0]
     none_logit_tf = prediction.none_logit[0]
+    context_rep_tf = model.context_rep[0]
+    m1_tf = model.predictor.m1[0]
+    m2_tf = model.predictor.m2[0]
   model_dir.restore_checkpoint(sess)
 
   with open(OPTS.output_file, 'w') as f:
     for doc_raw, q_raw, context, ex in tqdm(input_data):
       encoded = model.encode(ex, is_train=False)
-      start_logits, end_logits, none_logit = sess.run(
-          [start_logits_tf, end_logits_tf, none_logit_tf], feed_dict=encoded)
+      start_logits, end_logits, none_logit, context_rep, m1, m2 = sess.run(
+          [start_logits_tf, end_logits_tf, none_logit_tf, context_rep_tf,
+           m1_tf, m2_tf],
+          feed_dict=encoded)
       beam, p_na = logits_to_probs(
           doc_raw, context[0], start_logits, end_logits, none_logit,
           beam_size=OPTS.beam_size)
+      inputs = [context_rep, m1, m2]
+      vec = np.concatenate([np.amax(x, axis=0) for x in inputs] +
+                           [np.amin(x, axis=0) for x in inputs] +
+                           [np.mean(x, axis=0) for x in inputs])
       out_obj = {'paragraph': doc_raw, 'question': q_raw,
-                 'beam': beam, 'p_na': p_na}
+                 'beam': beam, 'p_na': p_na, 'vec': vec.tolist()}
       print(json.dumps(out_obj), file=f)
 
 if __name__ == '__main__':

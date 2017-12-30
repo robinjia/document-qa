@@ -212,6 +212,8 @@ class Attention(ParagraphQuestionModel):
             with tf.variable_scope("process_attention"):
                 context_rep = self.match_encoder.apply(is_train, context_rep, context_mask)
 
+        self.context_rep = context_rep
+
         with tf.variable_scope("predict"):
             if isinstance(self.predictor, AttentionPredictionLayer):
                 return self.predictor.apply(is_train, context_rep, question_rep, answer, context_mask, question_mask)
