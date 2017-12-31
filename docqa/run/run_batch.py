@@ -97,6 +97,17 @@ def main():
       vec = np.concatenate([np.amax(x, axis=0) for x in inputs] +
                            [np.amin(x, axis=0) for x in inputs] +
                            [np.mean(x, axis=0) for x in inputs])
+      #span_logits = np.add.outer(start_logits, end_logits)
+      #all_logits = np.concatenate((np.array([none_logit]), span_logits.flatten()))
+      #log_partition = scipy.special.logsumexp(all_logits)
+      #vec = np.concatenate([
+      #    np.amax(context_rep, axis=0),
+      #    np.amin(context_rep, axis=0),
+      #    np.mean(context_rep, axis=0),
+      #    [np.amax(start_logits), scipy.special.logsumexp(start_logits),
+      #     np.amax(end_logits), scipy.special.logsumexp(end_logits),
+      #     none_logit, log_partition] 
+      #])
       out_obj = {'paragraph': doc_raw, 'question': q_raw,
                  'beam': beam, 'p_na': p_na, 'vec': vec.tolist()}
       print(json.dumps(out_obj), file=f)
