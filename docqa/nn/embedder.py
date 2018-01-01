@@ -191,6 +191,7 @@ class FixedWordEmbedder(WordEmbedder):
         self.cpu = cpu
         self.shrink_embed = shrink_embed
         self.unk_embed = None
+        self.common_word_mat = None
 
         # Built in `init`
         self._word_to_ix = None
@@ -224,21 +225,22 @@ class FixedWordEmbedder(WordEmbedder):
         # added `cpu`
         return 1
 
-    def init(self, loader: ResourceLoader, voc: Iterable[str]):
+    def init(self, loader: ResourceLoader, voc: Iterable[str], allow_update=False):
         if self.cpu:
             with tf.device("/cpu:0"):
-                self._init(loader, voc)
+                self._init(loader, voc, allow_update=allow_update)
         else:
-            self._init(loader, voc)
+            self._init(loader, voc, allow_update=allow_update)
 
     def update(self, loader: ResourceLoader, voc: Iterable[str]):
         if self.cpu:
             with tf.device("/cpu:0"):
-                self._init(loader, voc, do_update=True)
+                self._init(loader, voc, allow_update=True, do_update=True)
         else:
-            self._init(loader, voc, do_update=True)
+            self._init(loader, voc, allow_update=True, do_update=True)
 
-    def _init(self, loader: ResourceLoader, voc: Iterable[str], do_update=False):
+    def _init(self, loader: ResourceLoader, voc: Iterable[str],
+              allow_update=False, do_update=False):
         # TODO we should not be building variables here
         if voc is not None:
             word_to_vec = loader.load_word_vec(self.vec_name, voc)
@@ -293,10 +295,15 @@ class FixedWordEmbedder(WordEmbedder):
         self.common_word_mat_np = np.vstack(mat)
 
         if not do_update:
-          # Set up the tf graph only once
-          self.common_word_mat = tf.placeholder(tf.float32, shape=(None, dim))
-          matrix_list.append(self.common_word_mat)
-          self._word_emb_mat = tf.concat(matrix_list, axis=0)
+            # Set up the tf graph only once
+            if allow_update:
+                self.common_word_mat = tf.placeholder(tf.float32, shape=(None, dim),
+                                                      name='common_word_mat')
+
+                matrix_list.append(self.common_word_mat)
+            else:
+                matrix_list.append(tf.constant(value=self.common_word_mat_np))
+            self._word_emb_mat = tf.concat(matrix_list, axis=0)
 
     def embed(self, is_train, *word_ix):
         if any(len(x) != 2 for x in word_ix):
