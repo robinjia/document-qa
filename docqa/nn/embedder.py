@@ -302,6 +302,7 @@ class FixedWordEmbedder(WordEmbedder):
 
                 matrix_list.append(self.common_word_mat)
             else:
+                self.common_word_mat = None
                 matrix_list.append(tf.constant(value=self.common_word_mat_np))
             self._word_emb_mat = tf.concat(matrix_list, axis=0)
 
