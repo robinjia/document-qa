@@ -54,8 +54,6 @@ class SquadParagraphWithAnswers(ParagraphWithAnswers):
         return self.original_text[self.spans[start][0]:self.spans[end][1]]
 
     def build_qa_pair(self, question, question_id, answer_text, group=None):
-        print('SquadParagraphWithAnswers.build_qa_pair(): {}, {}, {}, {}'.format(
-                question, question_id, answer_text, group))
         #if not answer_text:
         if answer_text is None:
             ans = None
@@ -118,8 +116,8 @@ class SquadTfIdfRanker(Preprocessor):
 
                     para = []
                     for ix in selection:
-                        if ix == para_ix:
-                        #if ix == para_ix and q.answer:
+                        #if ix == para_ix:
+                        if ix == para_ix and q.answer:
                             ans = q.answer.answer_spans
                         else:
                             ans = np.zeros((0, 2), dtype=np.int32)
