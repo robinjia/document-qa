@@ -46,7 +46,7 @@ def main():
     loader = CachingResourceLoader()
   print('Loading word vectors...')
   model.set_input_spec(ParagraphAndQuestionSpec(batch_size=None), set([',']),
-                       word_vec_loader=loader)
+                       word_vec_loader=loader, allow_update=True)
   print('Starting Tensorflow session...')
   sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
   with sess.as_default():
