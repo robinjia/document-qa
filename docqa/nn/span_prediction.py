@@ -545,6 +545,10 @@ class ConfidencePredictor(SequencePredictionLayer):
         self.confidence_predictor = confidence_predictor
         self.encoder = encoder
 
+        # Intermediates that will be deleted
+        self.m1 = None
+        self.m2 = None
+
     @property
     def version(self):
         return 1  # Fix masking
@@ -620,3 +624,11 @@ class ConfidencePredictor(SequencePredictionLayer):
                                     probs[:, -1], none_logit, context_mask)
 
 
+    def __getstate__(self):
+        state = super().__getstate__()
+        state["m1"] = None
+        state["m2"] = None
+        return state
+
+    def __setstate__(self, state):
+        super().__setstate__(state)

@@ -190,13 +190,14 @@ class FixedWordEmbedder(WordEmbedder):
         self.vec_name = vec_name
         self.cpu = cpu
         self.shrink_embed = shrink_embed
-        self.unk_embed = None
-        self.common_word_mat = None
 
         # Built in `init`
         self._word_to_ix = None
         self._word_emb_mat = None
         self._special_tokens = None
+        self.unk_embed = None
+        self.common_word_mat = None
+        self.common_word_mat_np = None
 
     def set_vocab(self, _, loader: ResourceLoader, special_tokens: List[str]):
         if special_tokens is not None:
@@ -329,6 +330,9 @@ class FixedWordEmbedder(WordEmbedder):
         state = dict(self.__dict__)
         state["_word_emb_mat"] = None  # we will rebuild these anyway
         state["_word_to_ix"] = None
+        state["unk_embed"] = None
+        state["common_word_mat"] = None
+        state["common_word_mat_np"] = None
         return dict(version=self.version, state=state)
 
     def __setstate__(self, state):

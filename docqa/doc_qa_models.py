@@ -185,6 +185,9 @@ class Attention(ParagraphQuestionModel):
         self.match_encoder = match_encoder
         self.predictor = predictor
 
+        # Delete later
+        self.context_rep = None
+
     def _get_predictions_for(self, is_train,
                              question_rep, question_mask,
                              context_rep, context_mask,
@@ -220,6 +223,11 @@ class Attention(ParagraphQuestionModel):
                 return self.predictor.apply(is_train, context_rep, question_rep, answer, context_mask, question_mask)
             else:
                 return self.predictor.apply(is_train, context_rep, answer, context_mask)
+
+    def __getstate__(self):
+        state = super().__getstate__()
+        state["context_rep"] = None
+        return state
 
 
 class AttentionAndEncode(ParagraphQuestionModel):
