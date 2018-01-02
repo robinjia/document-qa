@@ -30,8 +30,9 @@ def convert(model_dir, output_dir, best_weights=False):
                                   initializer=tf.constant_initializer(0), trainable=False)
 
     print("Setting up cudnn version")
-    # global_step = tf.get_variable('global_step', shape=[], dtype='int32', trainable=False)
+    #global_step = tf.get_variable('global_step', shape=[], dtype='int32', trainable=False)
     sess = tf.Session()
+    sess.run(global_step.assign(0))
     with sess.as_default():
         model.set_input_spec(ParagraphAndQuestionSpec(1, None, None, 14),
                              {"the"},
@@ -46,6 +47,7 @@ def convert(model_dir, output_dir, best_weights=False):
 
     print("Load vars")
     md.restore_checkpoint(sess)
+    print("Restore finished")
 
     feed = model.encode([test_questions], False)
     cuddn_out = sess.run([pred.start_logits, pred.end_logits], feed_dict=feed)

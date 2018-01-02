@@ -85,6 +85,8 @@ class ModelDir(object):
                 var_list = {v.op.name: v for v in var_list if v not in ema_vars}
                 var_list.update(ema_names)
 
+        # HACK: global_step is missing for some reason
+        del var_list['global_step']
         saver = tf.train.Saver(var_list)
         saver.restore(sess, checkpoint)
 
