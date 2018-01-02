@@ -279,10 +279,14 @@ class RandomParagraphSetDataset(Dataset):
                 with_answer = [i for i, p in enumerate(q.paragraphs) if len(p.answer_spans) > 0]
                 for ix, over_sample in zip(list(with_answer), self.oversample_first_answer):
                     with_answer += [ix] * over_sample
-                answer_selection = with_answer[np.random.randint(len(with_answer))]
-                other = np.array([i for i, x in enumerate(q.paragraphs) if i != answer_selection])
-                selected = np.random.choice(other, min(len(other), self.n_paragraphs-1), replace=False)
-                selected = np.insert(selected, 0, answer_selection)
+                if with_answer:
+                    answer_selection = with_answer[np.random.randint(len(with_answer))]
+                    other = np.array([i for i, x in enumerate(q.paragraphs) if i != answer_selection])
+                    selected = np.random.choice(other, min(len(other), self.n_paragraphs-1), replace=False)
+                    selected = np.insert(selected, 0, answer_selection)
+                else:
+                    selected = np.random.choice(len(q.paragraphs), self.n_paragraphs,
+                                                replace=False)
 
             if self.mode == "flatten":
                 for i in selected:

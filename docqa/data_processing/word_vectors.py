@@ -1,6 +1,7 @@
 import gzip
 import pickle
 from os.path import join, exists
+from tqdm import tqdm
 from typing import Iterable, Optional
 
 import numpy as np
@@ -42,6 +43,10 @@ def load_word_vector_file(vec_path: str, vocab: Optional[Iterable[str]] = None):
 
     pruned_dict = {}
     with handle(vec_path) as fh:
+        if vocab is None:
+            # Print progress bar because this will be slow
+            if 'glove.840B.300d' in vec_path:
+                fh = tqdm(fh, total=2196017)
         for line in fh:
             word_ix = line.find(" ")
             word = line[:word_ix]

@@ -552,6 +552,8 @@ class ConfidencePredictor(SequencePredictionLayer):
     def apply(self, is_train, context_embed, answer, context_mask=None):
         init_fn = get_keras_initialization(self.init)
         m1, m2 = self.predictor.apply(is_train, context_embed, context_mask)
+        self.m1 = m1
+        self.m2 = m2
 
         if m1.shape.as_list()[-1] != 1:
             with tf.variable_scope("start_pred"):

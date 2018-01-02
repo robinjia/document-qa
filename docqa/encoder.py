@@ -292,7 +292,8 @@ class DocumentAndQuestionEncoder(Configurable):
         return [x for x in
                 [self.question_len, self.question_words, self.question_chars, self.question_features,
                  self.context_len, self.context_words, self.context_chars, self.context_features,
-                 self.question_word_len, self.context_word_len]
+                 self.question_word_len, self.context_word_len,
+                 self._word_embedder.common_word_mat]
                 if x is not None] + self.answer_encoder.get_placeholders()
 
     def encode(self, batch: List[ContextAndQuestion], is_train: bool):
@@ -334,6 +335,9 @@ class DocumentAndQuestionEncoder(Configurable):
             question_words = np.zeros([batch_size, ques_word_dim], dtype='int32')
             feed_dict[self.context_words] = context_words
             feed_dict[self.question_words] = question_words
+            # Use the word embedder's current vocabulary, may change!
+            if self._word_embedder.common_word_mat is not None:
+                feed_dict[self._word_embedder.common_word_mat] = self._word_embedder.common_word_mat_np
         else:
             question_words, context_words = None, None
 

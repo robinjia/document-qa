@@ -190,6 +190,8 @@ class FixedWordEmbedder(WordEmbedder):
         self.vec_name = vec_name
         self.cpu = cpu
         self.shrink_embed = shrink_embed
+        self.unk_embed = None
+        self.common_word_mat = None
 
         # Built in `init`
         self._word_to_ix = None
@@ -223,14 +225,22 @@ class FixedWordEmbedder(WordEmbedder):
         # added `cpu`
         return 1
 
-    def init(self, loader: ResourceLoader, voc: Iterable[str]):
+    def init(self, loader: ResourceLoader, voc: Iterable[str], allow_update=False):
         if self.cpu:
             with tf.device("/cpu:0"):
-                self._init(loader, voc)
+                self._init(loader, voc, allow_update=allow_update)
         else:
-            self._init(loader, voc)
+            self._init(loader, voc, allow_update=allow_update)
 
-    def _init(self, loader: ResourceLoader, voc: Iterable[str]):
+    def update(self, loader: ResourceLoader, voc: Iterable[str]):
+        if self.cpu:
+            with tf.device("/cpu:0"):
+                self._init(loader, voc, allow_update=True, do_update=True)
+        else:
+            self._init(loader, voc, allow_update=True, do_update=True)
+
+    def _init(self, loader: ResourceLoader, voc: Iterable[str],
+              allow_update=False, do_update=False):
         # TODO we should not be building variables here
         if voc is not None:
             word_to_vec = loader.load_word_vec(self.vec_name, voc)
@@ -243,12 +253,14 @@ class FixedWordEmbedder(WordEmbedder):
         dim = next(iter(word_to_vec.values())).shape[0]
 
         null_embed = tf.zeros((1, dim), dtype=tf.float32)
-        unk_embed = tf.get_variable(shape=(1, dim), name="unk_embed",
-                                    dtype=np.float32, trainable=self.learn_unk,
-                                    initializer=tf.random_uniform_initializer(-self.word_vec_init_scale,
-                                                                              self.word_vec_init_scale))
+        if not do_update:
+            self.unk_embed = tf.get_variable(
+                shape=(1, dim), name="unk_embed",
+                dtype=np.float32, trainable=self.learn_unk,
+                initializer=tf.random_uniform_initializer(-self.word_vec_init_scale,
+                                                          self.word_vec_init_scale))
         ix = 2
-        matrix_list = [null_embed, unk_embed]
+        matrix_list = [null_embed, self.unk_embed]
 
         if self._special_tokens is not None and len(self._special_tokens) > 0:
             print("Building embeddings for %d special_tokens" % (len(self._special_tokens)))
@@ -278,9 +290,21 @@ class FixedWordEmbedder(WordEmbedder):
 
         print("Had pre-trained word embeddings for %d of %d words" % (len(mat), len(voc)))
 
-        matrix_list.append(tf.constant(value=np.vstack(mat)))
+        # Encoder will feed this as value of self.common_word_mat
+        # Allows us to quickly change the vocabulary at test time
+        self.common_word_mat_np = np.vstack(mat)
 
-        self._word_emb_mat = tf.concat(matrix_list, axis=0)
+        if not do_update:
+            # Set up the tf graph only once
+            if allow_update:
+                self.common_word_mat = tf.placeholder(tf.float32, shape=(None, dim),
+                                                      name='common_word_mat')
+
+                matrix_list.append(self.common_word_mat)
+            else:
+                self.common_word_mat = None
+                matrix_list.append(tf.constant(value=self.common_word_mat_np))
+            self._word_emb_mat = tf.concat(matrix_list, axis=0)
 
     def embed(self, is_train, *word_ix):
         if any(len(x) != 2 for x in word_ix):

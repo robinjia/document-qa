@@ -57,11 +57,12 @@ class ParagraphQuestionModel(Model):
         return self.set_input_spec(input_spec, voc, word_vec_loader)
 
     def set_input_spec(self, input_spec: ParagraphAndQuestionSpec, voc: Set[str],
-                       word_vec_loader: ResourceLoader=None):
+                       word_vec_loader: ResourceLoader=None,
+                       allow_update=False):
         if word_vec_loader is None:
             word_vec_loader = ResourceLoader()
         if self.word_embed is not None:
-            self.word_embed.init(word_vec_loader, voc)
+            self.word_embed.init(word_vec_loader, voc, allow_update=allow_update)
         if self.char_embed is not None:
             self.char_embed.embeder.init(word_vec_loader, voc)
         self.encoder.init(input_spec, True, self.word_embed,
@@ -211,6 +212,8 @@ class Attention(ParagraphQuestionModel):
         if self.match_encoder is not None:
             with tf.variable_scope("process_attention"):
                 context_rep = self.match_encoder.apply(is_train, context_rep, context_mask)
+
+        self.context_rep = context_rep
 
         with tf.variable_scope("predict"):
             if isinstance(self.predictor, AttentionPredictionLayer):
