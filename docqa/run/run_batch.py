@@ -28,6 +28,7 @@ def parse_args():
   parser.add_argument('output_file', metavar='output.jsonl')
   parser.add_argument('--beam-size', '-k', type=int, default=DEFAULT_BEAM_SIZE,
                       help='Beam size')
+  parser.add_argument('--no-vec', action='store_true')
   if len(sys.argv) == 1:
     parser.print_help()
     sys.exit(1)
@@ -40,8 +41,13 @@ def read_input_data(model):
   splitter = Truncate(400)  # NOTE: we truncate past 400 tokens
   selector = TopTfIdf(NltkPlusStopWords(True), n_to_select=5)
   with open(OPTS.input_file) as f:
-    for line in f:
-      document_raw, question_raw = line.strip().split('\t')
+    for i, line in enumerate(f):
+      try:
+        document_raw, question_raw = line.strip().split('\t')
+      except ValueError as e:
+        print(line.strip())
+        print('Error at line %d' % i)
+        raise e
       document = re.split("\s*\n\s*", document_raw)
       question = tokenizer.tokenize_paragraph_flat(question_raw)
       doc_toks = [tokenizer.tokenize_paragraph(p) for p in document]
@@ -109,7 +115,9 @@ def main():
       #     none_logit, log_partition] 
       #])
       out_obj = {'paragraph': doc_raw, 'question': q_raw,
-                 'beam': beam, 'p_na': p_na, 'vec': vec.tolist()}
+                 'beam': beam, 'p_na': p_na}
+      if not OPTS.no_vec:
+        out_obj['vec'] = vec.tolist()
       print(json.dumps(out_obj), file=f)
 
 if __name__ == '__main__':
