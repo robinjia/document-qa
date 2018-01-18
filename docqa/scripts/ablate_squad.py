@@ -12,7 +12,7 @@ from docqa.dataset import ClusteredBatcher
 from docqa.evaluator import LossEvaluator, MultiParagraphSpanEvaluator, SpanEvaluator
 from docqa.scripts.ablate_triviaqa import get_model
 from docqa.squad.squad_data import SquadCorpus, DocumentQaTrainingData
-from docqa.squad.squad_document_qa import SquadTfIdfRanker
+from docqa.squad.squad_document_qa import SquadTfIdfRanker, SquadDefault
 from docqa.text_preprocessor import WithIndicators
 from docqa.trainer import TrainParams, SerializableOptimizer
 
@@ -29,6 +29,7 @@ def main():
     parser = argparse.ArgumentParser(description='Train a model on document-level SQuAD')
     parser.add_argument('mode', choices=["paragraph", "confidence", "shared-norm", "merge", "sigmoid"])
     parser.add_argument("name", help="Output directory")
+    parser.add_argument("--no-tfidf", action='store_true', help="Don't add TF-IDF negative examples")
     args = parser.parse_args()
     mode = args.mode
     out = args.name + "-" + datetime.now().strftime("%m%d-%H%M%S")
@@ -57,6 +58,10 @@ def main():
             "shared-norm": "group",
             "merge": "merge"}[mode]
         eval_dataset = RandomParagraphSetDatasetBuilder(100, eval_set_mode, True, 0)
+        if args.no_tfidf:
+          prepro = SquadDefault(model.preprocessor)
+        else:
+          prepro = SquadTfIdfRanker(NltkPlusStopWords(True), 4, True, model.preprocessor)
 
         if mode == "confidence" or mode == "sigmoid":
             if mode == "sigmoid":
@@ -67,7 +72,7 @@ def main():
             train_batching = ClusteredBatcher(45, ContextLenBucketedKey(3), True, False)
             data = PreprocessedData(
                 SquadCorpus(),
-                SquadTfIdfRanker(NltkPlusStopWords(True), 4, True, model.preprocessor),
+                prepro,
                 StratifyParagraphsBuilder(train_batching, 1),
                 eval_dataset,
                 eval_on_verified=False,
@@ -76,7 +81,7 @@ def main():
             n_epochs = 26
             data = PreprocessedData(
                 SquadCorpus(),
-                SquadTfIdfRanker(NltkPlusStopWords(True), 4, True, model.preprocessor),
+                prepro,
                 StratifyParagraphSetsBuilder(25, args.mode == "merge", True, 1),
                 eval_dataset,
                 eval_on_verified=False,

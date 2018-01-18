@@ -134,3 +134,31 @@ class SquadTfIdfRanker(Preprocessor):
                     out.append(MultiParagraphQuestion(q.question_id, q.words, q.answer.answer_text, para))
                     q_ix += 1
         return out
+
+
+class SquadDefault(Preprocessor):
+    """Just uses the provided data."""
+    def __init__(self, text_process: TextPreprocessor=None):
+        self.text_process = text_process
+
+    def preprocess(self, docs: List[Document], evidence):
+        out = []
+        for doc in docs:
+            for para_ix, para in enumerate(doc.paragraphs):
+                for q in para.questions:
+                    if q.answer:
+                        ans = q.answer.answer_spans
+                    else:
+                        ans = np.zeros((0, 2), dtype=np.int32)
+                    if self.text_process:
+                        text, ans, inv = self.text_process.encode_paragraph(
+                            q.words,  [flatten_iterable(para.text)],
+                            para.paragraph_num == 0, ans, para.spans)
+                        new_para = SquadParagraphWithAnswers(
+                            text, ans, doc.doc_id, para_ix, para.original_text, inv)
+                    else:
+                        new_para = SquadParagraphWithAnswers(
+                            flatten_iterable(para.text), ans, doc.doc_id,
+                            para_ix, para.original_text, para.spans)
+                    out.append(MultiParagraphQuestion(q.question_id, q.words, q.answer.answer_text, [new_para]))
+        return out
