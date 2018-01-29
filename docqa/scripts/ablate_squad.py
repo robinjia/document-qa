@@ -69,6 +69,9 @@ def main():
                 n_epochs = 100
             else:
                 n_epochs = 50  # more epochs since we only "see" the label very other epoch-osh
+                if args.no_tfidf:
+                    n_epochs = 15  # We see the whole dataset every epoch
+
             train_batching = ClusteredBatcher(45, ContextLenBucketedKey(3), True, False)
             data = PreprocessedData(
                 SquadCorpus(),
