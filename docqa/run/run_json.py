@@ -25,10 +25,9 @@ def parse_args():
   parser = argparse.ArgumentParser('Generate predictions for a SQuAD JSON file.')
   parser.add_argument('model')
   parser.add_argument('input_file', metavar='input.json')
-  parser.add_argument('output_file', metavar='output.json')
+  parser.add_argument('output_file', metavar='pred.json')
   parser.add_argument('--na-prob-file', metavar='na_prob.json')
-  parser.add_argument('--always-answer', action='store_true',
-                      help='Never respond with empty string')
+  parser.add_argument('--always-answer-file', metavar='pred_alwaysAnswer.json')
   if len(sys.argv) == 1:
     parser.print_help()
     sys.exit(1)
@@ -77,6 +76,7 @@ def main():
 
   pred_obj = {}
   na_prob_obj = {}
+  pred_always_ans_obj = {}
   for context_raw, context_toks, ex in tqdm(input_data):
     encoded = model.encode(ex, is_train=False)
     start_logits, end_logits, none_logit = sess.run(
@@ -85,18 +85,20 @@ def main():
     beam, p_na = logits_to_probs(
         context_raw, context_toks, start_logits, end_logits, none_logit,
         beam_size=2)
-    if OPTS.always_answer:
-      ans = [x[0] for x in beam if x[0]][0]
-    else:
-      ans = beam[0][0]
+    ans = beam[0][0]
+    non_empty_ans = [x[0] for x in beam if x[0]][0]
     qid = ex[0].question_id
     pred_obj[qid] = ans
     na_prob_obj[qid] = p_na
+    pred_always_ans_obj[qid] = non_empty_ans
   with open(OPTS.output_file, 'w') as f:
     json.dump(pred_obj, f)
   if OPTS.na_prob_file:
     with open(OPTS.na_prob_file, 'w') as f:
       json.dump(na_prob_obj, f)
+  if OPTS.always_answer_file:
+    with open(OPTS.always_answer_file, 'w') as f:
+      json.dump(pred_always_ans_obj, f)
 
 if __name__ == '__main__':
   OPTS = parse_args()

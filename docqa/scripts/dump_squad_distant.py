@@ -19,6 +19,7 @@ def parse_args():
   parser = argparse.ArgumentParser()
   parser.add_argument('split', choices=['train', 'dev'])
   parser.add_argument('--out-file', '-o')
+  parser.add_argument('--num-per-orig', '-n', type=int, default=4)
   return parser.parse_args()
 
 def write_output(split, new_data, out_file):
@@ -55,7 +56,7 @@ def write_output(split, new_data, out_file):
 
 def main():
   corpus = SquadCorpus()
-  prepro = SquadTfIdfRanker(NltkPlusStopWords(True), 4, True)
+  prepro = SquadTfIdfRanker(NltkPlusStopWords(True), OPTS.num_per_orig, True)
   orig_data = corpus.get_train() if OPTS.split == 'train' else corpus.get_dev()
   orig_lens = [len(p.text[0]) for doc in orig_data for p in doc.paragraphs
                for q in p.questions] 
