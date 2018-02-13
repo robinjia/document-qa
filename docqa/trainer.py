@@ -349,7 +349,9 @@ def _train(model: Model,
 
     print("Setting up model prediction / tf...")
 
-    sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
+    config = tf.ConfigProto(allow_soft_placement=True)
+    config.gpu_options.allow_growth = True
+    sess = tf.Session(config=config)
 
     with sess.as_default():
         pred = model.get_prediction()
