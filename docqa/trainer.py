@@ -496,7 +496,9 @@ def _train_async(model: Model,
         input_tensor.set_shape(pl.shape)
 
     print("Init model...")
-    sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
+    config = tf.ConfigProto(allow_soft_placement=True)
+    config.gpu_options.allow_growth = True
+    sess = tf.Session(config=config)
     with sess.as_default():
         pred = model.get_predictions_for(dict(zip(placeholders, input_tensors)))
 
@@ -655,7 +657,9 @@ def test(model: Model, evaluators, datasets: Dict[str, Dataset], loader, checkpo
         inputs = model.get_placeholders()
     input_dict = {p: x for p, x in zip(model.get_placeholders(), inputs)}
 
-    sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
+    config = tf.ConfigProto(allow_soft_placement=True)
+    config.gpu_options.allow_growth = True
+    sess = tf.Session(config=config)
     with sess.as_default():
         pred = model.get_predictions_for(input_dict)
     evaluator_runner.set_input(pred)

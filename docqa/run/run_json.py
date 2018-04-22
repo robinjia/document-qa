@@ -11,6 +11,7 @@ from tqdm import tqdm
 from docqa.data_processing.qa_training_data import ParagraphAndQuestion, ParagraphAndQuestionSpec
 from docqa.data_processing.text_utils import NltkAndPunctTokenizer, NltkPlusStopWords
 from docqa.doc_qa_models import ParagraphQuestionModel
+from docqa.elmo.lm_qa_models import ElmoQaModel
 from docqa.model_dir import ModelDir
 from docqa.squad.build_squad_dataset import parse_squad_data
 from docqa.utils import flatten_iterable, CachingResourceLoader, ResourceLoader
@@ -28,6 +29,7 @@ def parse_args():
   parser.add_argument('output_file', metavar='pred.json')
   parser.add_argument('--na-prob-file', metavar='na_prob.json')
   parser.add_argument('--always-answer-file', metavar='pred_alwaysAnswer.json')
+  parser.add_argument('--elmo', action='store_true')
   if len(sys.argv) == 1:
     parser.print_help()
     sys.exit(1)
@@ -57,15 +59,29 @@ def main():
   print('Starting...')
   model_dir = ModelDir(OPTS.model)
   model = model_dir.get_model()
-  if not isinstance(model, ParagraphQuestionModel):
-    raise ValueError("This script is built to work for ParagraphQuestionModel models only")
+  if OPTS.elmo:
+    # Fix absolute path names from other codalab runs
+    lm = model.lm_model
+    if lm.lm_vocab_file.startswith('/0x'):
+      lm.lm_vocab_file = os.sep.join(lm.lm_vocab_file.split(os.sep)[2:])
+    if lm.options_file.startswith('/0x'):
+      lm.options_file = os.sep.join(lm.options_file.split(os.sep)[2:])
+    if lm.weight_file.startswith('/0x'):
+      lm.weight_file = os.sep.join(lm.weight_file.split(os.sep)[2:])
+    if lm.weight_file.startswith('/0x'):
+      lm.embed_weights_file = os.sep.join(lm.embed_weights_file.split(os.sep)[2:])
+
+  #if not isinstance(model, ParagraphQuestionModel):
+  #  raise ValueError("This script is built to work for ParagraphQuestionModel models only")
   input_data, vocab = read_input_data(model)
 
   print('Loading word vectors...')
   model.set_input_spec(ParagraphAndQuestionSpec(batch_size=None), vocab)
 
   print('Starting Tensorflow session...')
-  sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
+  config = tf.ConfigProto(allow_soft_placement=True)
+  config.gpu_options.allow_growth = True
+  sess = tf.Session(config=config)
   with sess.as_default():
     prediction = model.get_prediction()
     # Take 0-th here because we know we only truncate to one paragraph

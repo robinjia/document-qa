@@ -34,6 +34,8 @@ def main():
     parser.add_argument("--mode", choices=["input", "output", "both", "none"], default="both")
     parser.add_argument("--top_layer_only", action="store_true")
     parser.add_argument("--no-tfidf", action='store_true', help="Don't add TF-IDF negative examples")
+    parser.add_argument("--num-epochs", type=int, default=0)
+    parser.add_argument("--num-tfidf", type=int, default=4)
     args = parser.parse_args()
 
     out = args.output_dir + "-" + datetime.now().strftime("%m%d-%H%M%S")
@@ -55,7 +57,7 @@ def main():
             prepro = SquadDefault()
             n_epochs = 15
         else:
-            prepro = SquadTfIdfRanker(NltkPlusStopWords(True), 4, True)
+            prepro = SquadTfIdfRanker(NltkPlusStopWords(True), args.num_tfidf, True)
             n_epochs = 50
         answer_encoder = DenseMultiSpanAnswerEncoder()
         predictor = ConfidencePredictor(
@@ -76,6 +78,8 @@ def main():
         data.preprocess(1)
 
 
+    if args.num_epochs:
+        n_epochs = args.num_epochs
     params = trainer.TrainParams(trainer.SerializableOptimizer("Adadelta", dict(learning_rate=1.0)),
                                  ema=0.999, max_checkpoints_to_keep=2, async_encoding=10,
                                  num_epochs=n_epochs, log_period=30, eval_period=1200, save_period=1200,

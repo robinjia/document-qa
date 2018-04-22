@@ -5,6 +5,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import Tensor
 
+from docqa.config import LM_DIR
 from docqa.configurable import Configurable
 from docqa.data_processing.qa_training_data import ParagraphAndQuestionDataset, ContextAndQuestion
 from docqa.elmo.data import Batcher, TokenBatcher
@@ -15,8 +16,6 @@ from docqa.nn.embedder import WordEmbedder, CharWordEmbedder
 from docqa.nn.layers import SequenceMapper, SequencePredictionLayer, SequenceBiMapper, AttentionMapper, \
     AttentionPredictionLayer, Mapper
 from docqa.utils import ResourceLoader, flatten_iterable
-
-LM_DIR = join(expanduser("~"), "data", "lm")
 
 
 class LanguageModel(Configurable):

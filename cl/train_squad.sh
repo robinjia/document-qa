@@ -15,7 +15,7 @@ shift
 shift
 shift
 flags="$@"
-desc="DocumentQA ${mode}, train on ${train_file}"
+desc="DocQA ${mode}, train on ${train_file}"
 if [ -n "${flags}" ]; then
   desc="${desc}, ${flags}"
 fi

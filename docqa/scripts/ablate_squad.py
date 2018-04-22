@@ -30,6 +30,8 @@ def main():
     parser.add_argument('mode', choices=["paragraph", "confidence", "shared-norm", "merge", "sigmoid"])
     parser.add_argument("name", help="Output directory")
     parser.add_argument("--no-tfidf", action='store_true', help="Don't add TF-IDF negative examples")
+    parser.add_argument("--num-epochs", type=int, default=0)
+    parser.add_argument("--num-tfidf", type=int, default=4)
     args = parser.parse_args()
     mode = args.mode
     out = args.name + "-" + datetime.now().strftime("%m%d-%H%M%S")
@@ -59,9 +61,9 @@ def main():
             "merge": "merge"}[mode]
         eval_dataset = RandomParagraphSetDatasetBuilder(100, eval_set_mode, True, 0)
         if args.no_tfidf:
-          prepro = SquadDefault(model.preprocessor)
+            prepro = SquadDefault(model.preprocessor)
         else:
-          prepro = SquadTfIdfRanker(NltkPlusStopWords(True), 4, True, model.preprocessor)
+            prepro = SquadTfIdfRanker(NltkPlusStopWords(True), args.num_tfidf, True, model.preprocessor)
 
         if mode == "confidence" or mode == "sigmoid":
             if mode == "sigmoid":
@@ -97,6 +99,8 @@ def main():
         notes = f.read()
         notes = args.mode + "\n" + notes
 
+    if args.num_epochs:
+        n_epochs = args.num_epochs
     trainer.start_training(data, model, train_params(n_epochs), eval, model_dir.ModelDir(out), notes)
 
 

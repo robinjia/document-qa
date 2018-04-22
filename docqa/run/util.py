@@ -31,7 +31,7 @@ def make_tok_to_char(document, tokens):
   return tok_to_char
 
 def logits_to_probs(document, tokens, start_logits, end_logits, none_logit,
-                    beam_size=None):
+                    beam_size=None, max_len=17):
   span_logits = np.add.outer(start_logits, end_logits)
   tok_to_char = make_tok_to_char(document, tokens)
   all_logits = np.concatenate((np.array([none_logit]), span_logits.flatten()))
@@ -49,6 +49,7 @@ def logits_to_probs(document, tokens, start_logits, end_logits, none_logit,
     else:
       i, j = np.unravel_index(ind - 1, span_logits.shape)
       if i > j: continue
+      if j - i + 1 > max_len: continue
       start_char = tok_to_char[i]
       end_char = tok_to_char[j+1]
       phrase = document[start_char:end_char].strip()
