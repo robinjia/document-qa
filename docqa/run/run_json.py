@@ -70,6 +70,7 @@ def main():
       lm.weight_file = os.sep.join(lm.weight_file.split(os.sep)[2:])
     if lm.weight_file.startswith('/0x'):
       lm.embed_weights_file = os.sep.join(lm.embed_weights_file.split(os.sep)[2:])
+    lm.embed_weights_file = None
 
   #if not isinstance(model, ParagraphQuestionModel):
   #  raise ValueError("This script is built to work for ParagraphQuestionModel models only")
@@ -88,7 +89,15 @@ def main():
     start_logits_tf = prediction.start_logits[0]
     end_logits_tf = prediction.end_logits[0]
     none_logit_tf = prediction.none_logit[0]
-  model_dir.restore_checkpoint(sess)
+  if OPTS.elmo:
+    # See elmo/run_on_user_text.py
+    all_vars = tf.global_variables() + tf.get_collection(tf.GraphKeys.SAVEABLE_OBJECTS)
+    lm_var_names = {x.name for x in all_vars if x.name.startswith("bilm")}
+    vars = [x for x in all_vars if x.name not in lm_var_names]
+    model_dir.restore_checkpoint(sess, vars)
+    sess.run(tf.variables_initializer([x for x in all_vars if x.name in lm_var_names]))
+  else:
+    model_dir.restore_checkpoint(sess)
 
   pred_obj = {}
   na_prob_obj = {}

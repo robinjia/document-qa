@@ -9,4 +9,4 @@ host="$2"
 gpuid="$3"
 desc="DocumentQA, Convert to CPU, ${trainBundle}"
 cl work "$(cat cl_worksheet.txt)"
-cl run traindir:${trainBundle} :docqa 'export PYTHONPATH=${PYTHONPATH}:`pwd`; export CUDA_VISIBLE_DEVICES='"${gpuid}"'; ln -s traindir/model* .; python3 docqa/scripts/convert_to_cpu.py model* cpu_model'  --request-docker-image robinjia/tf-1.3.0-py3:1.0 -n "docqa-cpu" -d "${desc}" --request-queue host=${host}
+cl run traindir:${trainBundle} :docqa :elmo-params 'export PYTHONPATH=${PYTHONPATH}:`pwd`; export CUDA_VISIBLE_DEVICES='"${gpuid}"'; ln -s traindir/model* .; mkdir -p data/lm; cd data/lm; ln -s ../../elmo-params squad-context-concat-skip; cd -; python3 docqa/scripts/convert_to_cpu.py model* cpu_model'  --request-docker-image robinjia/tf-1.3.0-py3:1.0.1 -n "docqa-cpu" -d "${desc}" --request-queue host=${host}
