@@ -21,6 +21,7 @@ from util import *
 OPTS = None
 
 DEFAULT_BEAM_SIZE = 2
+MAX_THREADS = 4
 
 def parse_args():
   parser = argparse.ArgumentParser('Generate predictions for a SQuAD JSON file.')
@@ -81,6 +82,8 @@ def main():
 
   print('Starting Tensorflow session...')
   config = tf.ConfigProto(allow_soft_placement=True)
+  config.intra_op_parallelism_threads = MAX_THREADS
+  config.inter_op_parallelism_threads = MAX_THREADS
   config.gpu_options.allow_growth = True
   sess = tf.Session(config=config)
   with sess.as_default():

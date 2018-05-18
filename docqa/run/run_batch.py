@@ -5,14 +5,11 @@ import numpy as np
 import os
 import re
 import sys
-import tensorflow as tf
 from tqdm import tqdm
 
 from docqa.data_processing.document_splitter import Truncate, TopTfIdf
 from docqa.data_processing.qa_training_data import ParagraphAndQuestion, ParagraphAndQuestionSpec
 from docqa.data_processing.text_utils import NltkAndPunctTokenizer, NltkPlusStopWords
-from docqa.doc_qa_models import ParagraphQuestionModel
-from docqa.model_dir import ModelDir
 from docqa.utils import flatten_iterable, CachingResourceLoader, ResourceLoader
 
 from util import *
@@ -28,13 +25,17 @@ def parse_args():
   parser.add_argument('output_file', metavar='output.jsonl')
   parser.add_argument('--beam-size', '-k', type=int, default=DEFAULT_BEAM_SIZE,
                       help='Beam size')
+  parser.add_argument('--max-threads', '-t', type=int, default=0,
+                      help='Set max threads, to avoid weird errors when running many jobs')
   parser.add_argument('--no-vec', action='store_true')
+  parser.add_argument('--reuse', '-r', action='store_true',
+                      help='Reuse the existing predictions')
   if len(sys.argv) == 1:
     parser.print_help()
     sys.exit(1)
   return parser.parse_args()
 
-def read_input_data(model):
+def read_input_data():
   data = []
   vocab = set()
   tokenizer = NltkAndPunctTokenizer()
@@ -53,10 +54,11 @@ def read_input_data(model):
       doc_toks = [tokenizer.tokenize_paragraph(p) for p in document]
       split_doc = splitter.split(doc_toks)
       context = selector.prune(question, split_doc)
-      if model.preprocessor is not None:
-        context = [model.preprocessor.encode_text(question, x) for x in context]
-      else:
-        context = [flatten_iterable(x.text) for x in context]
+      #if model.preprocessor is not None:
+      #  context = [model.preprocessor.encode_text(question, x) for x in context]
+      #else:
+      #  context = [flatten_iterable(x.text) for x in context]
+      context = [flatten_iterable(x.text) for x in context]
       vocab.update(question)
       for txt in context:
         vocab.update(txt)
@@ -66,18 +68,40 @@ def read_input_data(model):
   return data, vocab
 
 def main():
+  input_data, vocab = read_input_data()
+  if OPTS.reuse:
+    cache = {}
+    if os.path.exists(OPTS.output_file):
+      with open(OPTS.output_file) as f:
+        for line in f:
+          line = line.strip()
+          obj = json.loads(line)
+          key = '%s\t%s' % (obj['paragraph'], obj['question'])
+          cache[key] = line
+    if all(('%s\t%s' % (p, q)) in cache for p, q, c, e in input_data):
+      print('Everything in cache %s, exiting' % OPTS.output_file)
+      sys.exit(0)
+
+  # Import here to save time
+  import tensorflow as tf
+  from docqa.doc_qa_models import ParagraphQuestionModel
+  from docqa.model_dir import ModelDir
+
   print('Starting...')
   model_dir = ModelDir(OPTS.model)
   model = model_dir.get_model()
   if not isinstance(model, ParagraphQuestionModel):
     raise ValueError("This script is built to work for ParagraphQuestionModel models only")
-  input_data, vocab = read_input_data(model)
 
   print('Loading word vectors...')
   model.set_input_spec(ParagraphAndQuestionSpec(batch_size=None), vocab)
 
   print('Starting Tensorflow session...')
-  sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
+  config = tf.ConfigProto(allow_soft_placement=True)
+  if OPTS.max_threads:
+    config.intra_op_parallelism_threads = OPTS.max_threads
+    config.inter_op_parallelism_threads = OPTS.max_threads
+  sess = tf.Session(config=config)
   with sess.as_default():
     prediction = model.get_prediction()
     # Take 0-th here because we know we only truncate to one paragraph
@@ -91,6 +115,11 @@ def main():
 
   with open(OPTS.output_file, 'w') as f:
     for doc_raw, q_raw, context, ex in tqdm(input_data):
+      if OPTS.reuse: 
+        key = '%s\t%s' % (doc_raw, q_raw)
+        if key in cache:
+          print(cache[key], file=f)
+          continue
       encoded = model.encode(ex, is_train=False)
       start_logits, end_logits, none_logit, context_rep, m1, m2 = sess.run(
           [start_logits_tf, end_logits_tf, none_logit_tf, context_rep_tf,

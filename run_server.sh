@@ -5,4 +5,4 @@ if [ $# -eq 0 ]; then
   echo "/out/0x9bea85-cpu is the original docqa-confidence model." 1>&2
   exit 1
 fi
-PYTHONPATH=. python3 docqa/run/demo_server.py "$1" -d
+PYTHONPATH=.:$PYTHONPATH  python3 docqa/run/demo_server.py "$1" -d

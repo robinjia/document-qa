@@ -6,5 +6,6 @@ if [ $# -eq 0 ]; then
   exit 1
 fi
 dir="$(dirname "$0")"
-PYTHONPATH="$dir" python3 "$dir"/docqa/run/run_json.py $@
+PYTHONPATH="$dir":$PYTHONPATH python3 -m cProfile "$dir"/docqa/run/run_json.py $@
+#PYTHONPATH="$dir":$PYTHONPATH python3 "$dir"/docqa/run/run_json.py $@
 
